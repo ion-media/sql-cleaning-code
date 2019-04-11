@@ -1,0 +1,59 @@
+/****** check disk space ******/
+SELECT DISTINCT DB_NAME(dovs.database_id) DBName,
+mf.physical_name PhysicalFileLocation,
+dovs.logical_volume_name AS LogicalName,
+dovs.volume_mount_point AS Drive,
+CONVERT(INT,dovs.available_bytes/1048576.0/1024.0) AS FreeSpaceInGB,
+CONVERT(INT,dovs.total_bytes/1024.0/1024.0/1024.0) AS TotSpaceGB,
+CONVERT(INT,dovs.available_bytes/1048576.0) AS FreeSpaceInMB,
+CONVERT(INT,dovs.total_bytes/1024.0/1024.0) AS TotalSpaceInMB
+FROM sys.master_files mf
+CROSS APPLY sys.dm_os_volume_stats(mf.database_id, mf.FILE_ID) dovs
+ORDER BY FreeSpaceInGB ASC
+
+SELECT TOP 1000
+        a3.name AS SchemaName,
+        a2.name AS TableName,
+        a1.rows as Row_Count,
+        (a1.reserved )* 8.0 / 1024/1024 AS reserved_gb,
+        a1.data * 8.0 / 1024/1024 AS data_gb,
+        (CASE WHEN (a1.used ) > a1.data THEN (a1.used ) - a1.data ELSE 0 END) * 8.0 / 1024/1024 AS index_size_gb,
+        (CASE WHEN (a1.reserved ) > a1.used THEN (a1.reserved ) - a1.used ELSE 0 END) * 8.0 / 1024/1024 AS unused_gb
+
+    FROM    (   SELECT
+                ps.object_id,
+                SUM ( CASE WHEN (ps.index_id < 2) THEN row_count    ELSE 0 END ) AS [rows],
+                SUM (ps.reserved_page_count) AS reserved,
+                SUM (CASE   WHEN (ps.index_id < 2) THEN (ps.in_row_data_page_count + ps.lob_used_page_count + ps.row_overflow_used_page_count)
+                            ELSE (ps.lob_used_page_count + ps.row_overflow_used_page_count) END
+                    ) AS data,
+                SUM (ps.used_page_count) AS used
+                FROM sys.dm_db_partition_stats ps
+                GROUP BY ps.object_id
+            ) AS a1
+
+    INNER JOIN sys.all_objects a2  ON ( a1.object_id = a2.object_id )
+
+    INNER JOIN sys.schemas a3 ON (a2.schema_id = a3.schema_id)
+
+    WHERE a2.type <> N'S' and a2.type <> N'IT'   
+    order by a1.data desc  
+
+/****** get start end day of season  ******/
+IF OBJECT_ID('dbo.nhi_start_end', 'U') IS NOT NULL 
+  DROP TABLE [dbo].[nhi_start_end]; 
+go
+SELECT [season], min(convert(date, [start_date],101)) as start_day, max(convert(date, [end_data],101)) as end_day
+  into [ion].[dbo].[nhi_start_end]
+  from [ion].[dbo].[nhi_calendar_weekly]
+  group by [season]
+  order by [season]
+go
+
+/****** group table by season  ******/
+
+Declare @startday date
+Declare @endday date
+set @startday=(select start_day from [ion].[dbo].[nhi_start_end] where season='07-08')
+set @endday=(select end_day from [ion].[dbo].[nhi_start_end] where season='07-08')
+go
