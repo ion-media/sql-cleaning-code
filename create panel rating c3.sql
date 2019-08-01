@@ -97,7 +97,7 @@ SELECT a.[BroadcastDate]
      on (a.BroadcastDate=c.BroadcastDate and a.TCastOriginator=c.TCastOriginator and a.TCastStartTime=c.TCastStartTime)
 where a.PlayDelayLabel='Live+3 Days (+75 Hours) _ TV with Digital _ Linear with VOD|0|4500'
 and a.MarketBreak='Composite' 
-and a.BroadcastDate>='2018-10-01';
+and a.BroadcastDate>='2019-04-01';
 go
 
  /******  remove dup******/

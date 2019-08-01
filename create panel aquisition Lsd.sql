@@ -45,8 +45,6 @@ insert into dbo.aquisition_lsd (
 )
 SELECT a.[BroadcastDate]
       ,CASE
-	   WHEN a.[BroadcastDate]>='2015-09-28' and a.[BroadcastDate]<='2016-09-25' THEN 1516
-	   WHEN a.[BroadcastDate]>='2016-09-26' and a.[BroadcastDate]<='2017-09-24' THEN 1617
 	   WHEN a.[BroadcastDate]>='2017-09-25' and a.[BroadcastDate]<='2018-09-30' THEN 1718
 	   WHEN a.[BroadcastDate]>='2018-10-01' and a.[BroadcastDate]<='2019-09-29' THEN 1819
 	   ELSE NULL
@@ -101,7 +99,7 @@ SELECT a.[BroadcastDate]
 	   on (a.BroadcastDate=c.BroadcastDate and a.TCastOriginator=c.TCastOriginator and a.TCastStartTime=c.TCastStartTime)
 where (a.PlayDelayLabel='Live+SD _ TV with Digital _ Linear with VOD|0|0')
 	 and (a.[MarketBreak]='Composite')
-	 and a.BroadcastDate>='2018-10-01'
+	 and a.BroadcastDate>='2019-04-01'
 	 ;
 go
 
@@ -120,7 +118,8 @@ with aa as(
   select TCastOriginator,BroadcastDate,TCastStartTime,TCastID,([F2529Projection]+[F3034Projection]+[F3539Projection]+[F4044Projection]+[F4549Projection]+[F5054Projection]
       +[M2529Projection]+[M3034Projection]+[M3539Projection]+[M4044Projection]+[M4549Projection]+[M5054Projection]) as P2554
   from dbo.net_rating_1819
-  where MarketBreak='HOH Race = Black' and PlayDelayLabel='Live+SD _ TV with Digital _ Linear with VOD|0|0' and BroadcastDate>='2018-07-02'
+  where MarketBreak='HOH Race = Black' and PlayDelayLabel='Live+SD _ TV with Digital _ Linear with VOD|0|0' 
+  and BroadcastDate>='2018-12-31'
 )
 update dbo.aquisition_lsd
 set aquisition_lsd.AaP2554=aa.P2554
@@ -135,15 +134,17 @@ and [dbo].[aquisition_lsd].TCastID=aa.TCastID
 update dbo.aquisition_lsd
 set TCastPremeireFlag=1,
     TCastComplexFlag=0
+where aquisition_lsd.BroadcastDate >='2018-10-01'
 ;
 go
 
 update dbo.aquisition_lsd
 set TCastComplexFlag=tvmz_eplist.showid
 from  tvmz_eplist
-where aquisition_lsd.BroadcastDate=tvmz_eplist.[date] 
- and aquisition_lsd.TCastStartTime=tvmz_eplist.[time]
+where aquisition_lsd.BroadcastDate=cast(tvmz_eplist.[airdate] as date)
+ and aquisition_lsd.TCastStartTime=cast(tvmz_eplist.[airtime] as time)
  and aquisition_lsd.TCastOriginatorID=tvmz_eplist.[nlnetid]
+ and aquisition_lsd.BroadcastDate >='2018-10-01'
  ;
  go
 
@@ -154,18 +155,21 @@ from  tvmz_neilsen_match
 where aquisition_lsd.[show]=tvmz_neilsen_match.[showname]
 and aquisition_lsd.[TCastComplexFlag]=tvmz_neilsen_match.[mzid]
 and aquisition_lsd.[TCastComplexFlag]>0
+and aquisition_lsd.BroadcastDate >='2018-10-01'
  ;
  go
 
 update dbo.aquisition_lsd
 set TCastPremeireFlag=TCastRepeatsFlag
 where TCastOriginator='ABC' or TCastOriginator='CBS' or TCastOriginator='FOX' or TCastOriginator='NBC'
+and aquisition_lsd.BroadcastDate >='2018-10-01'
  ;
  go
 
 with hourav as(
  select MarketBreak, TCastOriginatorID,HourInt, avg(P2554) as av
  from dbo.aquisition_lsd
+ where aquisition_lsd.BroadcastDate >='2018-10-01'
  group by MarketBreak, TCastOriginatorID,HourInt
 ) 
 update dbo.aquisition_lsd
@@ -340,8 +344,8 @@ where dbo.panel_aquisition_Lsd.rep_netid=net.id
 ;
 go
 
-select show,TCastOriginatorID,TCastOriginator,org_firstair,org_lastair,org_ct,median_age,hh/1000 as hh,P2554/1000 p2554,P1849/1000 as p1849,(case when P2554>0 then F2554/cast(P2554 as float) else 0 end) as FePecent,
+select show,TCastOriginatorID,rep_netid,TCastOriginator,org_firstair,org_lastair,org_ct,median_age,hh/1000 as hh,P2554/1000 p2554,P1849/1000 as p1849,(case when P2554>0 then F2554/cast(P2554 as float) else 0 end) as FePecent,
         (case when P2554>0 then AA2554/cast(P2554 as float) else 0 end) as AaPecent,P2554_PrimAvg/1000 as PrimNetAvg,(case when P2554_PrimAvg>0 then P2554/cast(P2554_PrimAvg as float) else 0 end) as PrgIndex,
        org_rep_ct,org_rep_p2554/1000,(case when P2554>0 then org_rep_p2554/cast(P2554 as float) else 0 end) as repeatfactor,org_rep_hourav/1000 as orgrepave,(case when org_rep_hourav>0 then org_rep_p2554/cast(org_rep_hourav as float) else 0 end) as repeatindex,
-	   rep_net,rep_netid,rep_firstair,rep_lastair,rep_count,rep_p2554/1000 as repp2554,rep_hourave/1000 as repave,(case when rep_hourave>0 then rep_p2554/cast(rep_hourave as float) else 0 end) as repeatindex2
+	   rep_net,rep_firstair,rep_lastair,rep_count,rep_p2554/1000 as repp2554,rep_hourave/1000 as repave,(case when rep_hourave>0 then rep_p2554/cast(rep_hourave as float) else 0 end) as repeatindex2
 from dbo.panel_aquisition_Lsd

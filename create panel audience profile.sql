@@ -1,8 +1,3 @@
-with a as(
- select * from dbo.net_rating_1516
- union select * from dbo.net_rating_1617
- union select * from dbo.net_rating_1718
-)
 Insert Into dbo.panel_audience_profile ([BroadcastDate]
       ,[YearInt]
       ,[MarketBreak]
@@ -63,7 +58,7 @@ SELECT a.[BroadcastDate]
       ,([M2529Projection]+[M3034Projection]+[M3539Projection]+[M4044Projection]+[M4549Projection]+[M5054Projection]) as M2554
 	  ,([F1820Projection]+[F2124Projection]+[F2529Projection]+[F3034Projection]+[F3539Projection]+[F4044Projection]+[F4549Projection]) as F1849
       ,([M1820Projection]+[M2124Projection]+[M2529Projection]+[M3034Projection]+[M3539Projection]+[M4044Projection]+[M4549Projection]) as M1849
-	  from a 
+	  from dbo.net_rating_1819 as a 
          left join dbo.titles_shows as b
       on a.TCastName=b.tcast_name and a.TCastOriginator=b.tcast_originator
          left join dbo.net_median as c
